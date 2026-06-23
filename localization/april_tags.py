@@ -20,8 +20,13 @@ class AprilTagDetector:
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         dets = self.detector.detect(gray, estimate_tag_pose=True,
-                            camera_params=(fx, fy, cx, cy), tag_size=0.1)  # 100 mm
+                            camera_params=(fx, fy, cx, cy), tag_size=0.0781)  # 100 mm
         
+        # IMPORTANT
+        # tag size is the size of the black tag as it appears on the plate and not the plate size
+        # refere to conversation for more details
+        # we can measure tag_size by a calibration function (not shown here)
+
         dets_processed = []
 
         for d in dets:
