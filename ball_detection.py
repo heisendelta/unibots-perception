@@ -91,6 +91,16 @@ collector = BallCollector(robot)
 collected_balls = [] # keep tracks of the balls collected
 
 
+# navigation FSM
+_state_seeking, _state_advancing = 0, 1
+_state = _state_seeking
+
+advance_start_time = None
+advance_target = None
+
+advance_straight = 1.5 # seconds
+
+
 # simulation loop
 while robot.step(TIME_STEP) != -1:
 
@@ -113,6 +123,7 @@ while robot.step(TIME_STEP) != -1:
     robot_pos_predicted = lozalizer.robot_position(dets, yaw, debug=False) # returns None if we can't see any AprilTags
     
     if robot_pos_predicted is None: # too close to walls
+        print("No April Tags detected")
         left_motor.setVelocity(-MAX_SPEED)
         right_motor.setVelocity(MAX_SPEED)
     
@@ -135,6 +146,7 @@ while robot.step(TIME_STEP) != -1:
     plot_nodes(robot, ball_pos, predicted_position=robot_pos_predicted, points_are_world=True, orange_balls_count=len(orange_balls))
 
     if not ball_pos: # no balls detected
+        print("No balls detected")
         left_motor.setVelocity(-MAX_SPEED)
         right_motor.setVelocity(MAX_SPEED)
     
@@ -143,20 +155,34 @@ while robot.step(TIME_STEP) != -1:
 
     # Navigation
 
-    nearest_ball = nearest_point((robot_x, robot_y), ball_pos)
-    (left, right), arrived = navigator.step((robot_x, robot_y, yaw), nearest_ball)
-
     # if arrived, then remove the closet ball to the current position
     collected_ball_pos = collector.check_and_collect()
-    # if collected_ball_pos is not None:
-    #     collected_balls.append(nearest_ball)
 
-    if arrived:
-        # left, right = move_from_key_input(keyboard, MAX_SPEED)
+    if _state == _state_seeking:
+        nearest_ball = nearest_point((robot_x, robot_y), ball_pos)
+        (left, right), arrived = navigator.step((robot_x, robot_y, yaw), nearest_ball)
+
+        print(left, right, arrived)
+
+        if arrived:
+            _state = _state_advancing
+            advance_start_time = robot.getTime()
+            advance_target = nearest_ball
+
+    else:
         left, right = MAX_SPEED, MAX_SPEED
+        timed_out = robot.getTime() - advance_start_time > advance_straight
 
-        collected_balls.append(nearest_ball)
+        print(collected_ball_pos, timed_out)
 
+        if collected_ball_pos is not None or timed_out:
+            if advance_target is not None:
+                collected_balls.append(advance_target)
+
+            _state = _state_seeking
+            left, right = 0.0, 0.0
+
+    # print(_state, left, right)
 
     left_motor.setVelocity(left)
     right_motor.setVelocity(right)
