@@ -78,7 +78,11 @@ metal_tracker = BallTracker(projector)
 april_tag_detector = AprilTagDetector(fov=camera_fov)
 
 tag_locs = build_tag_world()
-lozalizer = TagLocalizer(tag_locs, cam_pitch_down=camera_pitch_down, cam_height=camera_height, cam_offset_forward=-0.2)
+
+# IMPORTANT
+# recalibrate cam_offset_forward (it's close to 0.0 but not exactly)
+# run Claude's function again and get a very small positive value (less than 0.05)
+lozalizer = TagLocalizer(tag_locs, cam_pitch_down=camera_pitch_down, cam_height=camera_height, cam_offset_forward=0.03)
 
 imu = IMU(robot, name='inertial_unit')
 robot.step(TIME_STEP)
