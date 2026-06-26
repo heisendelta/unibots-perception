@@ -11,6 +11,7 @@ from localization.imu import IMU
 
 from navigation.keyboard import move_from_key_input
 from navigation.ball_navigation import BallNavigator, nearest_point
+from navigation.launch_fsm import LaunchFSM
 
 from collection.collection_mechanism import BallCollector, _within
 
@@ -89,6 +90,7 @@ robot.step(TIME_STEP)
 
 # navigation
 navigator = BallNavigator(max_wheel_speed=MAX_SPEED)
+fsm = None
 
 # collection
 collector = BallCollector(robot)
@@ -159,34 +161,54 @@ while robot.step(TIME_STEP) != -1:
 
     # Navigation
 
-    # if arrived, then remove the closet ball to the current position
-    collected_ball_pos = collector.check_and_collect()
+    if fsm is None:
+        fsm = LaunchFSM(box_position=(robot_x, robot_y - 0.2))
 
-    if _state == _state_seeking:
-        nearest_ball = nearest_point((robot_x, robot_y), ball_pos)
-        (left, right), arrived = navigator.step((robot_x, robot_y, yaw), nearest_ball)
+    pose = (robot_x, robot_y, yaw)
 
-        print(left, right, arrived)
+    nearest_ball = nearest_point((robot_x, robot_y), ball_pos)
+    collected = collector.check_and_collect()
 
-        if arrived:
-            _state = _state_advancing
-            advance_start_time = robot.getTime()
-            advance_target = nearest_ball
+    if collected is not None and nearest_ball is not None:
+        collected_balls.append(nearest_ball)
 
-    else:
-        left, right = MAX_SPEED, MAX_SPEED
-        timed_out = robot.getTime() - advance_start_time > advance_straight
-
-        print(collected_ball_pos, timed_out)
-
-        if collected_ball_pos is not None or timed_out:
-            if advance_target is not None:
-                collected_balls.append(advance_target)
-
-            _state = _state_seeking
-            left, right = 0.0, 0.0
-
-    # print(_state, left, right)
+    left, right = fsm.step(pose, ball_pos, collected, robot.getTime())
 
     left_motor.setVelocity(left)
     right_motor.setVelocity(right)
+
+
+
+    # Old navigation
+
+    # # if arrived, then remove the closet ball to the current position
+    # collected_ball_pos = collector.check_and_collect()
+
+    # if _state == _state_seeking:
+    #     nearest_ball = nearest_point((robot_x, robot_y), ball_pos)
+    #     (left, right), arrived = navigator.step((robot_x, robot_y, yaw), nearest_ball)
+
+    #     print(left, right, arrived)
+
+    #     if arrived:
+    #         _state = _state_advancing
+    #         advance_start_time = robot.getTime()
+    #         advance_target = nearest_ball
+
+    # else:
+    #     left, right = MAX_SPEED, MAX_SPEED
+    #     timed_out = robot.getTime() - advance_start_time > advance_straight
+
+    #     print(collected_ball_pos, timed_out)
+
+    #     if collected_ball_pos is not None or timed_out:
+    #         if advance_target is not None:
+    #             collected_balls.append(advance_target)
+
+    #         _state = _state_seeking
+    #         left, right = 0.0, 0.0
+
+    # # print(_state, left, right)
+
+    # left_motor.setVelocity(left)
+    # right_motor.setVelocity(right)
