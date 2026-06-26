@@ -6,7 +6,7 @@ import math
 
 def spawn_balls(supervisor, metal_count, orange_count, arena_size,
                 ball_radius=0.04, padding=0.01, robot_def="ROBOT", 
-                robot_exclusion_radius=0.5, max_attempts=10000):
+                robot_exclusion_radius=0.4, max_attempts=10000):
     
     root = supervisor.getRoot()
     children = root.getField("children")
@@ -20,7 +20,7 @@ def spawn_balls(supervisor, metal_count, orange_count, arena_size,
         raise ValueError(f"Robot with DEF '{robot_def}' not found in the world.")
     
     robot_field = robot_node.getField("translation")
-    robot_x, _, robot_z = robot_field.getSFVec3f()
+    robot_x, robot_z, _ = robot_field.getSFVec3f() # really bad convention
     robot_pos_2d = (robot_x, robot_z)
 
     def valid(x, z):
